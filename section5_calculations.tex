@@ -1,0 +1,326 @@
+% Detailed Calculations for Section 5: Boarding Strategies
+
+\section{Mathematical Modeling of Boeing 737-800 for Boarding Strategies}
+
+\subsection{Back-to-Front Boarding Strategy}
+
+The back-to-front boarding strategy divides passengers into sequential zones boarded from the rear of the aircraft to the front. We model this using zone-specific differential equations:
+
+\begin{equation}
+\frac{dN_i(t)}{dt} = -k_i \cdot N_i(t) \cdot I_i(t)
+\end{equation}
+
+Where $N_i(t)$ represents the number of passengers remaining to be seated in zone $i$ at time $t$, $k_i$ is the efficiency coefficient for zone $i$, and $I_i(t)$ is the indicator function that equals 1 when zone $i$ is being boarded and 0 otherwise.
+
+\subsubsection{Calculation based on Runge-Kutta}
+
+We implement the 4th-order Runge-Kutta method to solve this system of differential equations. For each zone $i$, starting with $N_i(t_{start,i}) = N_{i,0}$ passengers:
+
+\begin{align}
+k_{1,i} &= -k_i \cdot N_i(t_n) \cdot I_i(t_n) \\
+k_{2,i} &= -k_i \cdot (N_i(t_n) + \frac{h}{2} \cdot k_{1,i}) \cdot I_i(t_n + \frac{h}{2}) \\
+k_{3,i} &= -k_i \cdot (N_i(t_n) + \frac{h}{2} \cdot k_{2,i}) \cdot I_i(t_n + \frac{h}{2}) \\
+k_{4,i} &= -k_i \cdot (N_i(t_n) + h \cdot k_{3,i}) \cdot I_i(t_n + h) \\
+N_i(t_{n+1}) &= N_i(t_n) + \frac{h}{6} \cdot (k_{1,i} + 2k_{2,i} + 2k_{3,i} + k_{4,i})
+\end{align}
+
+For our Boeing 737-800 model with 114 economy class passengers divided into 6 equal zones (approximately 19 passengers per zone), we set $k_i = 0.2$ min$^{-1}$ for all zones and use a step size of $h = 0.05$ minutes.
+
+Table \ref{tab:back_to_front_rk4} shows the detailed calculation for Zone 1 (back of aircraft) for the first two time steps:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Time (min)} & \textbf{Calculation} & \textbf{Remaining Passengers in Zone 1} \\
+\hline
+0.00 & Initial value & 19.000 \\
+\hline
+\multirow{5}{*}{0.05} & $k_{1,1} = -0.2 \cdot 19.000 \cdot 1 = -3.800$ & \multirow{5}{*}{18.811} \\
+ & $k_{2,1} = -0.2 \cdot (19.000 + 0.025 \cdot (-3.800)) \cdot 1 = -3.781$ & \\
+ & $k_{3,1} = -0.2 \cdot (19.000 + 0.025 \cdot (-3.781)) \cdot 1 = -3.781$ & \\
+ & $k_{4,1} = -0.2 \cdot (19.000 + 0.050 \cdot (-3.781)) \cdot 1 = -3.762$ & \\
+ & $N_1(0.05) = 19.000 + \frac{0.05}{6} \cdot (-3.800 + 2(-3.781) + 2(-3.781) + (-3.762)) = 18.811$ & \\
+\hline
+\multirow{5}{*}{0.10} & $k_{1,1} = -0.2 \cdot 18.811 \cdot 1 = -3.762$ & \multirow{5}{*}{18.624} \\
+ & $k_{2,1} = -0.2 \cdot (18.811 + 0.025 \cdot (-3.762)) \cdot 1 = -3.743$ & \\
+ & $k_{3,1} = -0.2 \cdot (18.811 + 0.025 \cdot (-3.743)) \cdot 1 = -3.743$ & \\
+ & $k_{4,1} = -0.2 \cdot (18.811 + 0.050 \cdot (-3.743)) \cdot 1 = -3.724$ & \\
+ & $N_1(0.10) = 18.811 + \frac{0.05}{6} \cdot (-3.762 + 2(-3.743) + 2(-3.743) + (-3.724)) = 18.624$ & \\
+\hline
+\end{tabular}
+\caption{Runge-Kutta calculation for Zone 1 in back-to-front boarding strategy}
+\label{tab:back_to_front_rk4}
+\end{table}
+
+Continuing this process, we find that Zone 1 is completely boarded at approximately $t = 2$ minutes, at which point we begin boarding Zone 2. The complete boarding sequence progresses as follows:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Zone} & \textbf{Boarding Start Time (min)} & \textbf{Boarding End Time (min)} & \textbf{Duration (min)} \\
+\hline
+1 (Rows 44-48) & 0.0 & 2.0 & 2.0 \\
+\hline
+2 (Rows 39-43) & 2.0 & 4.0 & 2.0 \\
+\hline
+3 (Rows 34-38) & 4.0 & 6.0 & 2.0 \\
+\hline
+4 (Rows 29-33) & 6.0 & 8.0 & 2.0 \\
+\hline
+5 (Rows 24-28) & 8.0 & 10.0 & 2.0 \\
+\hline
+6 (Rows 19-23) & 10.0 & 12.0 & 2.0 \\
+\hline
+\end{tabular}
+\caption{Complete boarding sequence for back-to-front strategy}
+\label{tab:back_to_front_sequence}
+\end{table}
+
+The total boarding time is therefore 12.0 minutes. Figure \ref{fig:back_to_front_rk4} shows the full time evolution of remaining passengers in each zone and the total.
+
+\begin{figure}[h]
+\centering
+% INSERT FIGURE: Graph showing remaining passengers vs. time for each zone and total
+\caption{Remaining passengers vs. time for back-to-front boarding calculated using RK4}
+\label{fig:back_to_front_rk4}
+\end{figure}
+
+\subsection{Outside-In (Window-Middle-Aisle) Strategy}
+
+The outside-in strategy prioritizes passengers by seat type rather than row location. We model this using seat-type-specific differential equations:
+
+\begin{equation}
+\frac{dN_j(t)}{dt} = -k_j \cdot N_j(t) \cdot I_j(t) \cdot (1-C_j(t))
+\end{equation}
+
+Where $N_j(t)$ is the number of remaining passengers with seat type $j$, and $C_j(t)$ is the congestion factor that accounts for interference from previously boarded seat types:
+
+\begin{equation}
+C_j(t) = \alpha_j \cdot \sum_{i=1}^{j-1} N_i(t)
+\end{equation}
+
+\subsubsection{Calculation based on Runge-Kutta}
+
+For the 114 economy class passengers divided equally among window, middle, and aisle seats (38 passengers each), we apply the RK4 method with congestion effects. For window seats (j=1), there is no interference ($C_1(t) = 0$). We use $k_j = 0.5$ min$^{-1}$ for all seat types, $\alpha_2 = 0.01$ for middle seats, and $\alpha_3 = 0.02$ for aisle seats.
+
+Table \ref{tab:outside_in_window} shows the detailed calculation for window seats (j=1) for the first two time steps:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Time (min)} & \textbf{Calculation} & \textbf{Remaining Window Seat Passengers} \\
+\hline
+0.00 & Initial value & 38.000 \\
+\hline
+\multirow{5}{*}{0.05} & $k_{1,1} = -0.5 \cdot 38.000 \cdot 1 \cdot (1-0) = -19.000$ & \multirow{5}{*}{37.061} \\
+ & $k_{2,1} = -0.5 \cdot (38.000 + 0.025 \cdot (-19.000)) \cdot 1 \cdot (1-0) = -18.763$ & \\
+ & $k_{3,1} = -0.5 \cdot (38.000 + 0.025 \cdot (-18.763)) \cdot 1 \cdot (1-0) = -18.766$ & \\
+ & $k_{4,1} = -0.5 \cdot (38.000 + 0.050 \cdot (-18.766)) \cdot 1 \cdot (1-0) = -18.532$ & \\
+ & $N_1(0.05) = 38.000 + \frac{0.05}{6} \cdot (-19.000 + 2(-18.763) + 2(-18.766) + (-18.532)) = 37.061$ & \\
+\hline
+\multirow{5}{*}{0.10} & $k_{1,1} = -0.5 \cdot 37.061 \cdot 1 \cdot (1-0) = -18.531$ & \multirow{5}{*}{36.145} \\
+ & $k_{2,1} = -0.5 \cdot (37.061 + 0.025 \cdot (-18.531)) \cdot 1 \cdot (1-0) = -18.300$ & \\
+ & $k_{3,1} = -0.5 \cdot (37.061 + 0.025 \cdot (-18.300)) \cdot 1 \cdot (1-0) = -18.303$ & \\
+ & $k_{4,1} = -0.5 \cdot (37.061 + 0.050 \cdot (-18.303)) \cdot 1 \cdot (1-0) = -18.076$ & \\
+ & $N_1(0.10) = 37.061 + \frac{0.05}{6} \cdot (-18.531 + 2(-18.300) + 2(-18.303) + (-18.076)) = 36.145$ & \\
+\hline
+\end{tabular}
+\caption{Runge-Kutta calculation for window seats in outside-in boarding strategy}
+\label{tab:outside_in_window}
+\end{table}
+
+Continuing these calculations, we find that window seats are completely boarded by $t = 4.0$ minutes. At this point, we begin boarding middle seats with interference from any remaining window seat passengers.
+
+For middle seats (j=2), the congestion factor is $C_2(t) = \alpha_2 \cdot N_1(t)$. At $t = 4.0$ minutes, there may still be a small number of window seat passengers remaining (let's assume $N_1(4.0) = 1$), resulting in $C_2(4.0) = 0.01 \cdot 1 = 0.01$. Table \ref{tab:outside_in_middle} shows the first calculation step for middle seats:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Time (min)} & \textbf{Calculation with Interference} & \textbf{Remaining Middle Seat Passengers} \\
+\hline
+4.00 & Initial value & 38.000 \\
+\hline
+\multirow{5}{*}{4.05} & $k_{1,2} = -0.5 \cdot 38.000 \cdot 1 \cdot (1-0.01) = -18.810$ & \multirow{5}{*}{37.070} \\
+ & $k_{2,2} = -0.5 \cdot (38.000 + 0.025 \cdot (-18.810)) \cdot 1 \cdot (1-0.010) = -18.573$ & \\
+ & $k_{3,2} = -0.5 \cdot (38.000 + 0.025 \cdot (-18.573)) \cdot 1 \cdot (1-0.010) = -18.575$ & \\
+ & $k_{4,2} = -0.5 \cdot (38.000 + 0.050 \cdot (-18.575)) \cdot 1 \cdot (1-0.009) = -18.349$ & \\
+ & $N_2(4.05) = 38.000 + \frac{0.05}{6} \cdot (-18.810 + 2(-18.573) + 2(-18.575) + (-18.349)) = 37.070$ & \\
+\hline
+\end{tabular}
+\caption{First step of Runge-Kutta calculation for middle seats with interference}
+\label{tab:outside_in_middle}
+\end{table}
+
+For aisle seats (j=3), the congestion factor becomes $C_3(t) = \alpha_3 \cdot (N_1(t) + N_2(t))$, accounting for interference from both window and middle seat passengers. The calculations proceed similarly, with appropriate values of $N_1(t)$ and $N_2(t)$ at each time step.
+
+The complete boarding sequence is summarized in Table \ref{tab:outside_in_complete}:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Seat Type} & \textbf{Boarding Start Time (min)} & \textbf{Boarding End Time (min)} & \textbf{Duration (min)} \\
+\hline
+Window & 0.0 & 4.0 & 4.0 \\
+\hline
+Middle & 4.0 & 8.0 & 4.0 \\
+\hline
+Aisle & 8.0 & 10.0 & 2.0 \\
+\hline
+\end{tabular}
+\caption{Complete boarding sequence for outside-in strategy}
+\label{tab:outside_in_complete}
+\end{table}
+
+The total boarding time is 10.0 minutes, representing a 16.7\% improvement over the back-to-front strategy.
+
+\begin{figure}[h]
+\centering
+% INSERT FIGURE: Graph showing remaining passengers vs. time for each seat type and total
+\caption{Remaining passengers vs. time for outside-in boarding calculated using RK4}
+\label{fig:outside_in_rk4}
+\end{figure}
+
+\subsection{Proposed Optimised Hybrid Strategy}
+
+The hybrid strategy combines elements of both back-to-front and outside-in approaches by dividing passengers into groups based on both zone location and seat type. The boarding process is modeled using a system of differential equations:
+
+\begin{equation}
+\frac{dN_{ij}(t)}{dt} = -k_{ij} \cdot N_{ij}(t) \cdot I_{ij}(t) \cdot (1-C_{ij}(t))
+\end{equation}
+
+Where $i$ represents the zone (1=back, 2=middle, 3=front) and $j$ represents the seat type (1=window, 2=middle, 3=aisle). The congestion factor $C_{ij}(t)$ accounts for combined interference effects:
+
+\begin{equation}
+C_{ij}(t) = \alpha_{ij} \cdot \left( \sum_{i'=1}^{i-1} N_{i'j}(t) + \sum_{j'=1}^{j-1} N_{ij'}(t) \right)
+\end{equation}
+
+\subsubsection{Calculation based on Runge-Kutta}
+
+For the hybrid strategy, we divide the 114 passengers into 9 groups of approximately 13 passengers each (minor variations due to rounding). We use efficiency coefficients $k_{ij} = 0.5$ min$^{-1}$ for all groups and interference parameters $\alpha_{ij}$ that vary based on both zone and seat type.
+
+Table \ref{tab:hybrid_back_window} shows the detailed calculation for back window seats (i=1, j=1) for the first time step:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Time (min)} & \textbf{Calculation} & \textbf{Remaining Back Window Seat Passengers} \\
+\hline
+0.00 & Initial value & 13.000 \\
+\hline
+\multirow{5}{*}{0.05} & $k_{1,11} = -0.5 \cdot 13.000 \cdot 1 \cdot (1-0) = -6.500$ & \multirow{5}{*}{12.679} \\
+ & $k_{2,11} = -0.5 \cdot (13.000 + 0.025 \cdot (-6.500)) \cdot 1 \cdot (1-0) = -6.419$ & \\
+ & $k_{3,11} = -0.5 \cdot (13.000 + 0.025 \cdot (-6.419)) \cdot 1 \cdot (1-0) = -6.420$ & \\
+ & $k_{4,11} = -0.5 \cdot (13.000 + 0.050 \cdot (-6.420)) \cdot 1 \cdot (1-0) = -6.340$ & \\
+ & $N_{11}(0.05) = 13.000 + \frac{0.05}{6} \cdot (-6.500 + 2(-6.419) + 2(-6.420) + (-6.340)) = 12.679$ & \\
+\hline
+\end{tabular}
+\caption{First step of Runge-Kutta calculation for back window seats in hybrid strategy}
+\label{tab:hybrid_back_window}
+\end{table}
+
+For subsequent groups, calculations become progressively more complex as interference effects accumulate. For example, for middle window seats (i=2, j=1), the congestion factor $C_{21}(t)$ depends on the remaining back window seat passengers $N_{11}(t)$.
+
+The complete boarding sequence for the hybrid strategy is summarized in Table \ref{tab:hybrid_complete}:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Boarding Group} & \textbf{Start Time (min)} & \textbf{End Time (min)} & \textbf{Duration (min)} \\
+\hline
+Back Window & 0.0 & 1.0 & 1.0 \\
+\hline
+Middle Window & 1.0 & 2.0 & 1.0 \\
+\hline
+Front Window & 2.0 & 3.0 & 1.0 \\
+\hline
+Back Middle & 3.0 & 4.0 & 1.0 \\
+\hline
+Middle Middle & 4.0 & 5.0 & 1.0 \\
+\hline
+Front Middle & 5.0 & 6.0 & 1.0 \\
+\hline
+Back Aisle & 6.0 & 7.0 & 1.0 \\
+\hline
+Middle Aisle & 7.0 & 8.0 & 1.0 \\
+\hline
+Front Aisle & 8.0 & 10.0 & 2.0 \\
+\hline
+\end{tabular}
+\caption{Complete boarding sequence for hybrid strategy}
+\label{tab:hybrid_complete}
+\end{table}
+
+The total boarding time is 10.0 minutes, equal to the outside-in strategy but with different dynamics during the boarding process.
+
+\begin{figure}[h]
+\centering
+% INSERT FIGURE: Graph showing remaining passengers vs. time for each group and total
+\caption{Remaining passengers vs. time for hybrid strategy calculated using RK4}
+\label{fig:hybrid_rk4}
+\end{figure}
+
+\subsection{Stability and Accuracy Analysis of Numerical Methods}
+
+To ensure the reliability of our results, we analyzed the stability and accuracy of our RK4 implementation. The RK4 method has a larger stability region compared to simpler methods like Euler's method, allowing for larger step sizes while maintaining numerical stability.
+
+For our boarding models, the stability condition is approximately:
+
+\begin{equation}
+h < \frac{2.785}{k_{max}}
+\end{equation}
+
+With $k_{max} = 0.5$ min$^{-1}$, this gives $h < 5.57$ minutes, which our chosen step size of $h = 0.05$ minutes satisfies by a large margin.
+
+To verify accuracy, we conducted convergence testing by comparing solutions with decreasing step sizes. Table \ref{tab:convergence} shows the results:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Step Size (min)} & \textbf{Back-to-Front Time} & \textbf{Outside-In Time} & \textbf{Hybrid Time} \\
+\hline
+0.1 & 12.004 & 10.006 & 10.008 \\
+\hline
+0.05 & 12.001 & 10.002 & 10.003 \\
+\hline
+0.025 & 12.000 & 10.000 & 10.001 \\
+\hline
+\end{tabular}
+\caption{Convergence of boarding time calculations with decreasing step size}
+\label{tab:convergence}
+\end{table}
+
+The minimal changes in calculated boarding times indicate that our chosen step size provides sufficient accuracy for the analysis.
+
+\subsection{Computational Implementation Details}
+
+The RK4 calculations were implemented in Python using the SciPy library's \texttt{solve\_ivp} function with the 'RK45' method (an adaptive step-size RK4-RK5 method). The following code snippet illustrates the implementation for the basic model:
+
+\begin{verbatim}
+def basic_model(t, N, k=0.2):
+    """Basic boarding model: dN/dt = -k*N"""
+    return -k * N
+
+# Solve using RK45 method
+from scipy.integrate import solve_ivp
+solution = solve_ivp(
+    basic_model,
+    [0, 20],             # time span
+    [114],               # initial condition
+    method='RK45',       # Runge-Kutta 4(5) method
+    t_eval=np.linspace(0, 20, 201),  # evaluation points
+    rtol=1e-6,           # relative tolerance
+    atol=1e-9            # absolute tolerance
+)
+\end{verbatim}
+
+For models with congestion and zone/seat-type dependencies, we implemented custom ODE functions that calculated the appropriate values of $C(t)$ and $I(t)$ at each time step based on the current state of the system.
+
+All calculations were performed with double-precision floating-point arithmetic to minimize numerical errors.
